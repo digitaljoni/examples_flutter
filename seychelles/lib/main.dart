@@ -1,117 +1,211 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(
+    MaterialApp(
+      theme: ThemeData.dark(),
+      home: MyWidget(),
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
+class MyWidget extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
-        // This makes the visual density adapt to the platform that you run
-        // the app on. For desktop platforms, the controls will be smaller and
-        // closer together (more dense) than on mobile platforms.
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
-    );
-  }
+  _MyWidgetState createState() => _MyWidgetState();
 }
 
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
+class _MyWidgetState extends State<MyWidget> {
+  ScrollController _controller;
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
+  var top = 0.0;
 
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  _MyHomePageState createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
+  _scrollListener() {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      top = -_controller.offset / 3;
     });
   }
 
   @override
+  void initState() {
+    _controller = ScrollController();
+    _controller.addListener(_scrollListener);
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+      body: Stack(
+        children: <Widget>[
+          Positioned(
+            top: top,
+            child: Container(
+              width: MediaQuery.of(context).size.width,
+              height: MediaQuery.of(context).size.height + 100.0,
+              decoration: BoxDecoration(
+                color: Colors.black,
+                image: DecorationImage(
+                  image: NetworkImage(
+                    'https://raw.githubusercontent.com/digitaljoni/examples_flutter/master/seychelles/images/background.jpg',
+                  ),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          Container(
+            width: MediaQuery.of(context).size.width,
+            height: MediaQuery.of(context).size.height,
+            color: Color(0x19191919),
+          ),
+          SingleChildScrollView(
+            controller: _controller,
+            child: Content(),
+          )
+        ],
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
+    );
+  }
+}
+
+class Content extends StatelessWidget {
+  const Content({
+    Key key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: <Widget>[
+        Positioned(
+          right: -150.0,
+          top: -100.0,
+          child: Image(
+            image: NetworkImage(
+              'https://raw.githubusercontent.com/digitaljoni/examples_flutter/master/seychelles/images/map.png',
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.only(
+            top: (MediaQuery.of(context).size.width > 480.0) ? 100.0 : 300.0,
+            left: 18.0,
+            right: 54.0,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Container(
+                child: Text(
+                  'Seychelles',
+                  style: Theme.of(context).textTheme.headline2.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 50.0,
+                      ),
+                ),
+              ),
+              SizedBox(height: 18.0),
+              Container(
+                width: (MediaQuery.of(context).size.width > 480.0)
+                    ? MediaQuery.of(context).size.width / 2
+                    : double.infinity,
+                child: Text(
+                  'The Seychelles is an archipelago of 115 islands in the Indian Ocean, off East Africa. It’s home to numerous beaches, coral reefs and nature reserves, as well as rare animals such as giant Aldabra tortoises. Mahé, a hub for visiting the other islands, is home to capital Victoria. ',
+                  style: Theme.of(context).textTheme.bodyText1.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16.0,
+                        height: 1.5,
+                      ),
+                ),
+              ),
+              SizedBox(height: 18.0),
+              Row(
+                children: <Widget>[
+                  Container(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text('See all activities'),
+                    color: Colors.red,
+                  ),
+                  Container(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text('More Info'),
+                  ),
+                ],
+              ),
+              SizedBox(height: 18.0),
+              InfoCards(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class InfoCards extends StatelessWidget {
+  const InfoCards({Key key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Widget> _widgets = <Widget>[
+      InfoCardWidget(),
+      InfoCardWidget(),
+      InfoCardWidget(),
+    ];
+
+    if (MediaQuery.of(context).size.width > 480.0) {
+      return Row(
+        children: _widgets,
+      );
+    }
+
+    return Column(
+      children: _widgets,
+    );
+  }
+}
+
+class InfoCardWidget extends StatelessWidget {
+  const InfoCardWidget({
+    Key key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: (MediaQuery.of(context).size.width > 480.0)
+          ? MediaQuery.of(context).size.width / 3.5
+          : 350.0,
+      child: Card(
+        color: Colors.black38,
+        elevation: 0.0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(
+            Radius.circular(
+              18.0,
             ),
-          ],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(18.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'Tours',
+                style: Theme.of(context).textTheme.headline5.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              Text(
+                  'View schedule for upcoming tours and book yours to see all the amazing things Seychelles has to offer!'),
+            ],
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
