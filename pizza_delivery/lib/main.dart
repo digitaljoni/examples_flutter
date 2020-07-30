@@ -11,11 +11,11 @@ const _availablePizzaSizes = [
 
 const _availableIngredients = [
   'mushroom',
-  'leaf',
   'pepper',
   'olive',
   'cucumber',
 ];
+
 double _radiansToDegrees(double angle) {
   return angle * 180 / pi;
 }
@@ -49,12 +49,31 @@ class PizzaOrderPage extends StatefulWidget {
 }
 
 class _PizzaOrderPageState extends State<PizzaOrderPage> {
+  final GlobalKey<_MySliderState> _sliderKey = GlobalKey();
+
   String _pizzaSize = 'S';
-  int _selectedIndex = 0;
+
+  String _activeIngredient;
+  double _activeIngredientRatio;
+  Map<String, double> _additionalToppings = <String, double>{};
 
   void _onPizzaDialUpdate(int newIndex) {
-    _selectedIndex = newIndex;
     _pizzaSize = _availablePizzaSizes[newIndex];
+    setState(() {});
+  }
+
+  void _onIngredientsUpdate(int index) {
+    _activeIngredient = _availableIngredients[index];
+    _activeIngredientRatio = _additionalToppings.containsKey(_activeIngredient)
+        ? _additionalToppings[_activeIngredient]
+        : 0.0;
+    setState(() {});
+    _sliderKey?.currentState?.updateCount(_activeIngredientRatio);
+  }
+
+  void _onSliderUpdate(double _amount) {
+    _activeIngredientRatio = _amount;
+    _additionalToppings[_activeIngredient] = _amount;
     setState(() {});
   }
 
@@ -63,6 +82,17 @@ class _PizzaOrderPageState extends State<PizzaOrderPage> {
     'M': 0.80,
     'L': 1.00,
   };
+
+  @override
+  void initState() {
+    super.initState();
+
+    for (var i = 0; i < _availableIngredients.length; i++) {
+      _additionalToppings[_availableIngredients[i]] = 0.0;
+    }
+
+    _onIngredientsUpdate(0);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -109,12 +139,6 @@ class _PizzaOrderPageState extends State<PizzaOrderPage> {
           ),
           Container(
             width: MediaQuery.of(context).size.width,
-            height: MediaQuery.of(context).size.height / 2,
-            child: Text('$_pizzaSize'),
-            color: Colors.white,
-          ),
-          Container(
-            width: MediaQuery.of(context).size.width,
             height: MediaQuery.of(context).size.height / 2.5,
             child: Center(
               // top: MediaQuery.of(context).size.height / 2,
@@ -126,9 +150,20 @@ class _PizzaOrderPageState extends State<PizzaOrderPage> {
                 ),
                 width: 314.0 * _pizzaSizeRatio[_pizzaSize],
                 height: 314.0 * _pizzaSizeRatio[_pizzaSize],
-                child: Image.asset(
-                  'assets/images/pizza.png',
-                  fit: BoxFit.fill,
+                child: Stack(
+                  overflow: Overflow.visible,
+                  alignment: Alignment.center,
+                  children: <Widget>[
+                    Image.asset('assets/images/pizza.png'),
+                    buildToppings(_additionalToppings['pepper'] > 0, 'pepper',
+                        314.0 * _pizzaSizeRatio[_pizzaSize]),
+                    buildToppings(_additionalToppings['olive'] > 0, 'olive',
+                        314.0 * _pizzaSizeRatio[_pizzaSize]),
+                    buildToppings(_additionalToppings['mushroom'] > 0,
+                        'mushroom', 314.0 * _pizzaSizeRatio[_pizzaSize]),
+                    buildToppings(_additionalToppings['cucumber'] > 0,
+                        'cucumber', 314.0 * _pizzaSizeRatio[_pizzaSize]),
+                  ],
                 ),
               ),
             ),
@@ -144,13 +179,51 @@ class _PizzaOrderPageState extends State<PizzaOrderPage> {
                 child: Image.asset('assets/images/border.png')),
           ),
           IngredientsDial(
-            onUpdate: (_) {},
+            onUpdate: _onIngredientsUpdate,
+          ),
+          Positioned(
+            top: MediaQuery.of(context).size.height / 2 + 100,
+            left: MediaQuery.of(context).size.width / 2 - 5,
+            child: Container(
+              width: 10.0,
+              height: 10.0,
+              decoration: BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+            ),
           ),
           MySlider(
-            onUpdate: (_) {},
+            key: _sliderKey,
+            topping: _activeIngredient,
+            count: _activeIngredientRatio,
+            onUpdate: _onSliderUpdate,
             top: MediaQuery.of(context).size.height / 2 + 100,
           ),
         ],
+      ),
+    );
+  }
+
+  Positioned buildToppings(bool isVisible, String topping, double pizzaSize) {
+    return Positioned(
+      top: 0.0,
+      child: AnimatedOpacity(
+        opacity: isVisible ? 1.0 : 0.0,
+        duration: Duration(
+          milliseconds: 400,
+        ),
+        child: AnimatedContainer(
+          width: isVisible ? pizzaSize : 600.0,
+          height: isVisible ? pizzaSize : 600.0,
+          duration: Duration(
+            milliseconds: 400,
+          ),
+          child: Image.asset(
+            'assets/images/pizza_$topping.png',
+            fit: BoxFit.fill,
+          ),
+        ),
       ),
     );
   }
@@ -263,6 +336,8 @@ class IngredientsDial extends StatelessWidget {
   Widget dialItemBuilder(String item, String selectedItem) {
     return Center(
       child: Container(
+        width: 50.0,
+        height: 50.0,
         decoration: BoxDecoration(
           color: Colors.black12,
           shape: BoxShape.circle,
@@ -427,7 +502,12 @@ class MySlider extends StatefulWidget {
     Key key,
     @required this.onUpdate,
     @required this.top,
+    @required this.topping,
+    @required this.count,
   }) : super(key: key);
+
+  final String topping;
+  final double count;
 
   final Function onUpdate;
   final double top;
@@ -459,6 +539,14 @@ class _MySliderState extends State<MySlider> {
     setState(() {});
   }
 
+  void updateCount(double count) {
+    _amount = count;
+    angleDelta =
+        (_amount * _degreesToRadians(_startDegree.abs() + _endDegree.abs())) +
+            _degreesToRadians(_startDegree);
+    setState(() {});
+  }
+
   final _dialRadius = 300.0;
 
   void _onHorizontalDragUpdate(DragUpdateDetails details) {
@@ -475,6 +563,14 @@ class _MySliderState extends State<MySlider> {
     angleDelta =
         (_amount * _degreesToRadians(_startDegree.abs() + _endDegree.abs())) +
             _degreesToRadians(_startDegree);
+    setState(() {});
+  }
+
+  void _onHorizontalDragEnd(DragEndDetails details) {
+    if (widget.onUpdate != null) {
+      widget.onUpdate(_amount);
+    }
+
     setState(() {});
   }
 
@@ -527,7 +623,7 @@ class _MySliderState extends State<MySlider> {
           ),
           GestureDetector(
             onHorizontalDragUpdate: _onHorizontalDragUpdate,
-            // onHorizontalDragEnd: _onHorizontalDragEnd,
+            onHorizontalDragEnd: _onHorizontalDragEnd,
             child: Transform(
               transform: Matrix4.rotationZ(angleDelta),
               alignment: FractionalOffset.center,
