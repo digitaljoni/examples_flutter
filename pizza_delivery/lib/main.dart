@@ -78,6 +78,28 @@ class _PizzaOrderPageState extends State<PizzaOrderPage> {
           ),
         ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 50.0),
+        child: Container(
+          width: 80.0,
+          height: 80.0,
+          decoration: BoxDecoration(
+            color: Colors.red,
+            shape: BoxShape.circle,
+          ),
+          child: new RawMaterialButton(
+            shape: new CircleBorder(),
+            elevation: 0.0,
+            child: Icon(
+              Icons.add,
+              color: Colors.white,
+              size: 40.0,
+            ),
+            onPressed: () {},
+          ),
+        ),
+      ),
       body: Stack(
         children: <Widget>[
           Container(
