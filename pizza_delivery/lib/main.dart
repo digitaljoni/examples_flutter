@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
@@ -32,10 +33,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Pizza Order',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
+      debugShowCheckedModeBanner: false,
       home: PizzaOrderPage(),
     );
   }
@@ -52,7 +50,7 @@ class PizzaOrderPage extends StatefulWidget {
 
 class _PizzaOrderPageState extends State<PizzaOrderPage> {
   String _pizzaSize = 'S';
-  // int _selectedIndex = 0;
+  int _selectedIndex = 0;
 
   void _onPizzaDialUpdate(int newIndex) {
     _selectedIndex = newIndex;
@@ -70,7 +68,15 @@ class _PizzaOrderPageState extends State<PizzaOrderPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Pepperoni Pizza'),
+        elevation: 0.0,
+        backgroundColor: Colors.white,
+        brightness: Brightness.light,
+        title: Text(
+          'Pepperoni Pizza',
+          style: TextStyle(
+            color: Colors.black87,
+          ),
+        ),
       ),
       body: Stack(
         children: <Widget>[
@@ -117,7 +123,11 @@ class _PizzaOrderPageState extends State<PizzaOrderPage> {
           ),
           IngredientsDial(
             onUpdate: (_) {},
-          )
+          ),
+          MySlider(
+            onUpdate: (_) {},
+            top: MediaQuery.of(context).size.height / 2 + 100,
+          ),
         ],
       ),
     );
@@ -194,12 +204,13 @@ class PizzaDial extends StatelessWidget {
 
   final Function onUpdate;
 
-  Widget dialItemBuilder(String item) {
+  Widget dialItemBuilder(String item, String selectedItem) {
+    print('dial item');
     return Center(
       child: Text(
         item,
         style: TextStyle(
-          color: Colors.black87,
+          color: selectedItem == item ? Colors.red : Colors.black87,
           fontSize: 32.0,
         ),
       ),
@@ -227,7 +238,7 @@ class IngredientsDial extends StatelessWidget {
 
   final Function onUpdate;
 
-  Widget dialItemBuilder(String item) {
+  Widget dialItemBuilder(String item, String selectedItem) {
     return Center(
       child: Container(
         decoration: BoxDecoration(
@@ -291,35 +302,28 @@ class _DialState extends State<Dial> {
   final _dialItemDegree = 16.0;
 
   double angleDelta = 0.0;
-  String strDialAngle = '';
+  String _selectedItem;
 
   void _onHorizontalDragUpdate(DragUpdateDetails details) {
     angleDelta = angleDelta + (details.delta.dx / 600);
-
-    strDialAngle = 'Horizontal Drag : ${angleDelta * 180 / pi}';
-
     setState(() {});
   }
 
   void _onHorizontalDragEnd(DragEndDetails details) {
+    _snapToAngle();
+  }
+
+  void _snapToAngle() {
     final angleInDegrees = _radiansToDegrees(angleDelta);
-
-    // final newAngleDelta = (angleInDegrees / 20).round() * 20.0;
-
     final newAngleDelta =
         _dialItemDegree * (angleInDegrees / _dialItemDegree).round().toInt();
-    // angleDelta = _degreesToRadians(newAngleDelta);
-
-    strDialAngle = ' Rounded: $newAngleDelta  - $angleInDegrees - $angleDelta';
-
     int newIndex =
         getIndexFromDegrees(newAngleDelta, widget.dialItemList.length);
-
     angleDelta = _degreesToRadians(_dialItemDegree * -newIndex);
-
     if (widget.onUpdate != null) {
       widget.onUpdate(newIndex);
     }
+    _selectedItem = widget.dialItemList[newIndex];
     setState(() {});
   }
 
@@ -330,28 +334,19 @@ class _DialState extends State<Dial> {
   @override
   void initState() {
     super.initState();
-
-    _buildDialWidgets();
+    _buildDialMap();
+    _selectedItem = widget.dialItemList[0];
   }
 
-  void _buildDialWidgets() {
+  Map<double, String> dialAngleItem = <double, String>{};
+
+  void _buildDialMap() {
     for (var i = 0; i < widget.dialItemList.length; i++) {
       final dialItem = widget.dialItemList[i];
-      _dialWidgets.add(
-        MyDialItem(
-          angle: i * _dialItemDegree,
-          radius: _dialRadius - _edgeDistance,
-          child: widget.myBuilder(dialItem),
-        ),
-      );
-      // add items after last item
-      _dialWidgets.add(
-        MyDialItem(
-          angle: (widget.dialItemList.length + i) * _dialItemDegree,
-          radius: _dialRadius - _edgeDistance,
-          child: widget.myBuilder(dialItem),
-        ),
-      );
+
+      dialAngleItem[i * _dialItemDegree] = dialItem;
+      dialAngleItem[(widget.dialItemList.length + i) * _dialItemDegree] =
+          dialItem;
     }
 
     // add items before first dial
@@ -359,17 +354,9 @@ class _DialState extends State<Dial> {
     for (var i = widget.dialItemList.length - 1; i >= 0; i--) {
       index++;
       final dialItem = widget.dialItemList[i];
-      _dialWidgets.add(
-        MyDialItem(
-          angle: -(index * _dialItemDegree),
-          radius: _dialRadius - _edgeDistance,
-          child: widget.myBuilder(dialItem),
-        ),
-      );
+      dialAngleItem[-(index * _dialItemDegree)] = dialItem;
     }
   }
-
-  List<Widget> _dialWidgets = <Widget>[];
 
   @override
   Widget build(BuildContext context) {
@@ -394,7 +381,18 @@ class _DialState extends State<Dial> {
                     blurRadius: 20.0,
                   )
                 ]),
-            child: Stack(alignment: Alignment.center, children: _dialWidgets),
+            child: Stack(
+              alignment: Alignment.center,
+              children: dialAngleItem.entries
+                  .map<Widget>(
+                    (e) => MyDialItem(
+                      angle: e.key,
+                      radius: _dialRadius - _edgeDistance,
+                      child: widget.myBuilder(e.value, _selectedItem),
+                    ),
+                  )
+                  .toList(),
+            ),
           ),
         ),
       ),
@@ -402,153 +400,195 @@ class _DialState extends State<Dial> {
   }
 }
 
-// class PizzaDial extends StatefulWidget {
-//   PizzaDial({
-//     Key key,
-//     @required this.onUpdate,
-//     this.dialItemList,
-//   }) : super(key: key);
+class MySlider extends StatefulWidget {
+  MySlider({
+    Key key,
+    @required this.onUpdate,
+    @required this.top,
+  }) : super(key: key);
 
-//   final Function onUpdate;
-//   final List<String> dialItemList;
+  final Function onUpdate;
+  final double top;
 
-//   @override
-//   _PizzaDialState createState() => _PizzaDialState();
-// }
+  @override
+  _MySliderState createState() => _MySliderState();
+}
 
-// class _PizzaDialState extends State<PizzaDial> {
-//   final _pizzaCircleRadius = 500.0;
-//   final _dialItemDegree = 16.0;
+class _MySliderState extends State<MySlider> {
+  _MySliderState();
 
-//   double angleDelta = 0.0;
-//   String strDialAngle = '';
+  double _amount = 0.0;
+  double angleDelta = 0.0;
 
-//   void _onHorizontalDragUpdate(DragUpdateDetails details) {
-//     angleDelta = angleDelta + (details.delta.dx / 600);
+  final _startDegree = -32.0;
+  final _endDegree = 32.0;
 
-//     strDialAngle = 'Horizontal Drag : ${angleDelta * 180 / pi}';
+  Path _sliderPath;
 
-//     if (widget.onUpdate != null) {
-//       widget.onUpdate(strDialAngle);
-//     }
-//     setState(() {});
-//   }
+  @override
+  void initState() {
+    super.initState();
 
-//   void _onHorizontalDragEnd(DragEndDetails details) {
-//     final angleInDegrees = _radiansToDegrees(angleDelta);
+    _sliderPath = drawPath();
 
-//     // final newAngleDelta = (angleInDegrees / 20).round() * 20.0;
+    angleDelta =
+        (_amount * _degreesToRadians(_startDegree.abs() + _endDegree.abs())) +
+            _degreesToRadians(_startDegree);
+    setState(() {});
+  }
 
-//     final newAngleDelta =
-//         _dialItemDegree * (angleInDegrees / _dialItemDegree).round().toInt();
-//     // angleDelta = _degreesToRadians(newAngleDelta);
+  final _dialRadius = 300.0;
 
-//     strDialAngle = ' Rounded: $newAngleDelta  - $angleInDegrees - $angleDelta';
+  void _onHorizontalDragUpdate(DragUpdateDetails details) {
+    _amount = _amount + (details.delta.dx / 300);
+    print(details.delta.dx);
 
-//     int newIndex =
-//         getIndexFromDegrees(newAngleDelta, widget.dialItemList.length);
+    if (_amount <= 0.0) {
+      _amount = 0.0;
+    }
 
-//     angleDelta = _degreesToRadians(_dialItemDegree * -newIndex);
+    if (_amount >= 1.0) {
+      _amount = 1.0;
+    }
+    angleDelta =
+        (_amount * _degreesToRadians(_startDegree.abs() + _endDegree.abs())) +
+            _degreesToRadians(_startDegree);
+    setState(() {});
+  }
 
-//     if (widget.onUpdate != null) {
-//       widget.onUpdate(_availablePizzaSizes[newIndex]);
-//     }
-//     setState(() {});
-//   }
+  Path drawPath() {
+    Size size = Size(280, 200);
+    Path path = Path();
+    path.moveTo(0, size.height / 2);
+    path.quadraticBezierTo(
+      size.width / 2,
+      0,
+      size.width,
+      size.height / 2,
+    );
+    return path;
+  }
 
-//   int getIndexFromDegrees(double angle, int itemCount) {
-//     return ((itemCount - (angle / _dialItemDegree)) % itemCount).toInt();
-//   }
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: widget.top,
+      left: MediaQuery.of(context).size.width / 2 - (_dialRadius),
+      child: Stack(
+        alignment: Alignment.topCenter,
+        children: <Widget>[
+          Positioned(
+            child: Container(
+              alignment: Alignment.topLeft,
+              child: CustomPaint(
+                //
+                size: Size(280.0, 150),
+                painter: PathPainter(_sliderPath),
+              ),
+            ),
+          ),
+          Positioned(
+            child: ClipPath(
+              clipper: MyCustomClipper(ratio: _amount),
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                ),
+                alignment: Alignment.topLeft,
+                child: CustomPaint(
+                  //
+                  size: Size(280.0, 150),
+                  painter: PathPainter(_sliderPath, color: Colors.red),
+                ),
+              ),
+            ),
+          ),
+          GestureDetector(
+            onHorizontalDragUpdate: _onHorizontalDragUpdate,
+            // onHorizontalDragEnd: _onHorizontalDragEnd,
+            child: Transform(
+              transform: Matrix4.rotationZ(angleDelta),
+              alignment: FractionalOffset.center,
+              child: Container(
+                width: _dialRadius * 2,
+                height: _dialRadius * 2,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.transparent,
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    MyRadialPosition(
+                      radius: 245.0,
+                      angle: 0.0 - 90,
+                      child: MyRotation(
+                        angle: 0,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                          ),
+                          child: Container(
+                            width: 44.0,
+                            height: 44.0,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.black87,
+                            ),
+                            child:
+                                Image.asset('assets/images/pizza_button.png'),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-//   @override
-//   void initState() {
-//     super.initState();
+class PathPainter extends CustomPainter {
+  PathPainter(this.path, {this.color: Colors.black26});
+  final Path path;
+  final Color color;
 
-//     _buildDialWidgets();
-//   }
+  @override
+  void paint(Canvas canvas, Size size) {
+    Paint paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 16.0
+      ..strokeCap = StrokeCap.round;
 
-//   void _buildDialWidgets() {
-//     for (var i = 0; i < widget.dialItemList.length; i++) {
-//       final dialItem = widget.dialItemList[i];
-//       _dialWidgets.add(
-//         MyDialItem(
-//           angle: i * _dialItemDegree,
-//           radius: _pizzaCircleRadius - 32,
-//           child: Center(
-//             child: Text(
-//               dialItem,
-//               style: TextStyle(
-//                 fontSize: 32.0,
-//               ),
-//             ),
-//           ),
-//         ),
-//       );
-//       // add items after last item
-//       _dialWidgets.add(
-//         MyDialItem(
-//           angle: (widget.dialItemList.length + i) * _dialItemDegree,
-//           radius: _pizzaCircleRadius - 32,
-//           child: Center(
-//             child: Text(
-//               dialItem,
-//               style: TextStyle(
-//                 fontSize: 32.0,
-//               ),
-//             ),
-//           ),
-//         ),
-//       );
-//     }
+    canvas.drawPath(this.path, paint);
+  }
 
-//     // add items before first dial
-//     var index = 0;
-//     for (var i = widget.dialItemList.length - 1; i >= 0; i--) {
-//       index++;
-//       final dialItem = widget.dialItemList[i];
-//       _dialWidgets.add(
-//         MyDialItem(
-//           angle: -(index * _dialItemDegree),
-//           radius: _pizzaCircleRadius - 32,
-//           child: Center(
-//             child: Text(
-//               dialItem,
-//               style: TextStyle(
-//                 fontSize: 32.0,
-//               ),
-//             ),
-//           ),
-//         ),
-//       );
-//     }
-//   }
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => true;
+}
 
-//   List<Widget> _dialWidgets = <Widget>[];
+class MyCustomClipper extends CustomClipper<Path> {
+  MyCustomClipper({this.ratio: 0.5});
+  final double ratio;
 
-//   @override
-//   Widget build(BuildContext context) {
-//     return Container(
-//       child: Positioned(
-//         top: MediaQuery.of(context).size.height / 2,
-//         left: MediaQuery.of(context).size.width / 2 - (_pizzaCircleRadius),
-//         child: GestureDetector(
-//           onHorizontalDragUpdate: _onHorizontalDragUpdate,
-//           onHorizontalDragEnd: _onHorizontalDragEnd,
-//           child: Transform(
-//             transform: Matrix4.rotationZ(angleDelta),
-//             alignment: FractionalOffset.center,
-//             child: Container(
-//               width: _pizzaCircleRadius * 2,
-//               height: _pizzaCircleRadius * 2,
-//               decoration: BoxDecoration(
-//                 shape: BoxShape.circle,
-//                 color: Colors.white,
-//               ),
-//               child: Stack(alignment: Alignment.center, children: _dialWidgets),
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0.0, 0.0);
+    path.lineTo(size.width * ratio, 0.0);
+    path.lineTo(size.width * ratio, size.height);
+    path.lineTo(0.0, size.height);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper oldClipper) {
+    return true;
+  }
+}
